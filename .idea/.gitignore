@@ -1,5 +1,4 @@
-inspectionProfiles
-misc.xml
-vcs.xml
-workspace.xml
+codeStyleSettings.xml
 emacs.xml
+inspectionProfiles
+workspace.xml

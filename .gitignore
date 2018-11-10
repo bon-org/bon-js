@@ -1,6 +1,6 @@
-.erlang.mk
-_rel
-deps
-ebin
-*.beam
-.stackish.plt
+node_modules/
+package-lock.json
+yarn.lock
+*.d.ts
+*.js
+*.js.map
