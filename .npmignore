@@ -5,5 +5,9 @@ yarn.lock
 src/
 tsconfig.json
 tslint.json
-*.ts
 publish
+test/
+.idea/
+*.log
+.travis.yml
+*.tgz
