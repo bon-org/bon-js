@@ -1,17 +1,13 @@
 {
   "extends": [
-    "tslint:recommended"
-  ],
-  "rulesDirectory": [
-    "node_modules/codelyzer",
-    "node_modules/tslint-eslint-rules/dist/rules"
+    "tslint:recommended",
+    "tslint-eslint-rules",
+    "tslint-config-prettier"
   ],
   "rules": {
     "no-reference": false,
     "only-arrow-functions": false,
-    "max-classes-per-file": [
-      false
-    ],
+    "max-classes-per-file": false,
     "no-namespace": false,
     "align": [
       true,
@@ -20,6 +16,7 @@
     "arrow-parens": false,
     "jsdoc-format": false,
     "space-before-function-paren": false,
+    "no-invalid-this": true,
     "callable-types": true,
     "class-name": true,
     "comment-format": [
@@ -78,7 +75,11 @@
     "no-string-throw": true,
     "no-switch-case-fall-through": true,
     "no-trailing-whitespace": true,
-    "no-unused-expression": true,
+    "no-unused-expression": [
+      true,
+      "allow-fast-null-checks"
+    ],
+    "no-use-before-declare": false,
     "no-var-keyword": true,
     "object-literal-sort-keys": false,
     "one-line": [
@@ -122,42 +123,19 @@
       "check-separator",
       "check-type"
     ],
-    "directive-selector": [
-      true,
-      "attribute",
-      "",
-      "camelCase"
-    ],
-    "component-selector": [
-      true,
-      "element",
-      "",
-      "kebab-case"
-    ],
-    "use-input-property-decorator": true,
-    "use-output-property-decorator": true,
-    "use-host-property-decorator": true,
-    "no-input-rename": true,
-    "no-output-rename": true,
-    "use-life-cycle-interface": true,
-    "use-pipe-transform-interface": true,
-    "component-class-suffix": false,
-    "directive-class-suffix": true,
-    "no-access-missing-member": true,
-    "templates-use-public": true,
-    "invoke-injectable": true,
     "interface-name": false,
-    "no-attribute-parameter-decorator": true,
-    "no-forward-ref": false,
     "ordered-imports": false,
-    "pipe-naming": [
-      true,
-      "camelCase"
-    ],
     "trailing-comma": [
-      false,
+      true,
       {
-        "multiline": "always",
+        "multiline": {
+          "arrays": "always",
+          "exports": "always",
+          "functions": "ignore",
+          "imports": "always",
+          "objects": "always",
+          "typeLiterals": "always"
+        },
         "singleline": "never"
       }
     ]

@@ -23,7 +23,7 @@ import {
     to_binary,
     Tuple,
     tuple_to_list,
-    type_of
+    type_of,
 } from "./erlang-datatype";
 import {$0, $a, $b, $colon, $double_quote, $quote, assert, char_code, test_out} from "./utils";
 
@@ -89,11 +89,11 @@ export function data_test(Data?) {
             throw new Error("not_match: " + util.inspect({
                 Data: {
                     type: type_of(Data),
-                    value: Data
+                    value: Data,
                 }, Res: {
                     type: type_of(Res),
-                    value: Res
-                }
+                    value: Res,
+                },
             }));
         }
         return "ok";
@@ -109,7 +109,7 @@ export function data_test(Data?) {
         new Tuple(Atom("record"), Atom("content")),
         [new Tuple(Atom("debug"), Atom("true")), Atom("safe"), Atom("speedup"), new Tuple(Atom("log"), "file.log")],
         {user: "name", pw: "123"},
-        {log: [{time: 123}, {time: 234}]}
+        {log: [{time: 123}, {time: 234}]},
     ].map(data => {
         const res = data_test(data);
         if (res == "ok") {
@@ -276,7 +276,7 @@ function parse(List: List, Acc: List): [List, any] {
 
     /* group: tuple, list and map */
     if (H === char_code["["]) {
-        const [Word, T1, Children] = parse(T0, EmptyList) as [any, any, any];
+        const [Word, T1, Children] = parse(T0, EmptyList) as any as [any, any, any];
         const Res = (() => {
             switch (Word.name) {
                 case WORD_TUPLE:
