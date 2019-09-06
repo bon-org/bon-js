@@ -2,7 +2,8 @@
   "name": "@beenotung/bon",
   "version": "0.1.3",
   "description": "BON - Binary Object Notation, A.K.A. Beeno Object Notation. For Erlang and Javascript Data Exchange",
-  "main": "dist/index.js",
+  "main": "index.js",
+  "types": "index.d.ts",
   "author": "Beeno Tung",
   "license": "BSD-3-Clause",
   "scripts": {
@@ -21,7 +22,7 @@
     "build:test-web": "browserify bon_test.js > test/bon_test.js",
     "test:web": "npm run build:test-web && xdg-open test/bon_test.html",
     "prepublishOnly": "npm run build",
-    "precommit": "npm run fix-lint",
+    "precommit": "run-s fix lint",
     "commit": "git gui",
     "postcommit": "git push"
   },
