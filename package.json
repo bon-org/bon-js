@@ -1,6 +1,6 @@
 {
   "name": "@beenotung/bon",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "BON - Binary Object Notation, A.K.A. Beeno Object Notation. For Erlang and Javascript Data Exchange",
   "main": "index.js",
   "types": "index.d.ts",
