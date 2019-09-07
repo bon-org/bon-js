@@ -1,5 +1,5 @@
 import * as util from "util";
-import {$a, $z, assert, char_code} from "./utils";
+import {$a, $z, assert} from "./utils";
 
 export function Atom(Str: string) {
     return Symbol.for(Str);
@@ -18,6 +18,13 @@ export class Binary {
 
     constructor(value: Uint8Array) {
         this.value = value;
+    }
+
+    /**@deprecated slow*/
+    toString(): string {
+        let res = "";
+        this.value.forEach(x => res += String.fromCharCode(x));
+        return res;
     }
 }
 
@@ -147,6 +154,7 @@ export function inject_inspect() {
 
 inject_inspect();
 
+/**@deprecated slow*/
 export function array_to_list(Arr: any[]) {
     const res = Arr.reduce((acc, c) => acc.append(c), EmptyList);
     return lists.reverse(res);
@@ -198,106 +206,15 @@ export function tuple(...args) {
     return array_to_tuple(args);
 }
 
-export function string_to_array(str: string): Uint8Array {
-    return Uint8Array.from(new Array(str.length), (v, k) => str.charCodeAt(k));
-}
-
 export function string_to_binary(str: string): Binary {
-    return new Binary(string_to_array(str));
+    return new Binary(Buffer.from(str));
 }
 
-export class IOList {
-
-    constructor(public buffers: Buffer[] = []) {
-    }
-
-    append(x: number | IOList | Binary): void {
-        if (typeof x === "number") {
-            this.buffers.unshift(Buffer.of(x));
-            return;
-        }
-        if (x instanceof IOList) {
-            this.buffers = x.buffers.concat(this.buffers);
-            return;
-        }
-        if (x instanceof Binary) {
-            this.buffers.unshift(Buffer.from(x.value));
-            return;
-        }
-        throw new Error("bad_arg: " + util.inspect(x));
-    }
-
-    toBinary(): Binary {
-        return new Binary(Buffer.concat(this.buffers));
-    }
-
-    static of(b: number) {
-        return new IOList([Buffer.of(b)]);
-    }
-
-    static from(...xs: Array<number | IOList | Binary>) {
-        let buffers: Buffer[] = [];
-        let buffer: number[] = [];
-        const flush = () => {
-            if (buffer.length > 0) {
-                buffers.push(Buffer.from(buffer));
-                buffer = [];
-            }
-        };
-        for (const x of xs) {
-            if (typeof x === "number") {
-                buffer.push(x);
-                continue;
-            }
-            if (x instanceof IOList) {
-                flush();
-                buffers = buffers.concat(x.buffers);
-                continue;
-            }
-            if (x instanceof Binary) {
-                flush();
-                buffers.push(Buffer.from(x.value));
-                continue;
-            }
-            console.error("unknown type for IoList.from():", x);
-            throw new Error("unknown type");
-        }
-        flush();
-        return new IOList(buffers);
-    }
-
-    static fromList(list: List): IOList {
-        return lists.foldl((X, Acc) => {
-            if (X instanceof List) {
-                Acc.append(IOList.fromList(X));
-            } else {
-                Acc.append(X);
-            }
-            return Acc;
-        }, new IOList(), list);
-    }
-}
+export type IOList = string;
 
 export function integer_to_iolist(x: int): IOList {
     assert(type_of(x) == "int", "expect integer: " + util.inspect(x));
-    if (x == 0) {
-        return IOList.of(48);
-    }
-    const acc = new IOList();
-    let neg = false;
-    if (x < 0) {
-        neg = true;
-        x = -x;
-    }
-    for (; x != 0;) {
-        const rem = x % 10;
-        acc.append(rem + 48);
-        x = (x - rem) / 10;
-    }
-    if (neg) {
-        acc.append(char_code["-"]);
-    }
-    return acc;
+    return x.toString();
 }
 
 export function type_of(Data) {
@@ -316,7 +233,7 @@ export function type_of(Data) {
     if (Data instanceof Binary) {
         return "binary";
     }
-    if (Data instanceof IOList) {
+    if (typeof Data === "string") {
         return "iolist";
     }
     if (Data instanceof List) {
@@ -345,12 +262,11 @@ export function type_of(Data) {
 
 /** TODO speed up **/
 export function iolist_to_binary(List0: IOList | List): Binary {
-    if (List0 instanceof IOList) {
-        return List0.toBinary();
+    if (typeof List0 === "string") {
+        return new Binary(Buffer.from(List0));
     }
     if (List0 instanceof List) {
-        const List1 = lists.reverse(List0);
-        return IOList.fromList(List1).toBinary();
+        return iolist_to_binary(list_to_string(List0));
     }
     throw new Error("bad_arg: " + util.inspect(List0));
 }
@@ -358,6 +274,14 @@ export function iolist_to_binary(List0: IOList | List): Binary {
 export function binary_to_list(Bin: Binary): List {
     const res = Bin.value.reduce((acc, c) => acc.append(c), EmptyList);
     return lists.reverse(res);
+}
+
+export function iolist_to_list(Bin: IOList): List {
+    let Acc = EmptyList;
+    for (let i = Bin.length - 1; i >= 0; i--) {
+        Acc = Acc.append(Bin.charCodeAt(i));
+    }
+    return Acc;
 }
 
 export function byte_size(Bin: Binary): number {
@@ -373,7 +297,6 @@ export type set = Set<any>;
 export function equal(A, B): boolean {
     const A_Type = type_of(A);
     const B_Type = type_of(B);
-    debugger;
     if (A_Type != B_Type) {
         if (A_Type == "array" && B_Type == "list") {
             return equal_array_list(A, B);

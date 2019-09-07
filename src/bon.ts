@@ -3,12 +3,10 @@ import {
     Atom,
     Binary,
     binary_to_list,
-    byte_size,
     EmptyList,
     equal,
     float,
     int,
-    integer_to_iolist,
     IOList,
     iolist_to_binary,
     list,
@@ -25,7 +23,7 @@ import {
     tuple_to_list,
     type_of,
 } from "./erlang-datatype";
-import {$0, $a, $b, $colon, $double_quote, $quote, assert, char_code, test_out} from "./utils";
+import {$0, $a, $b, $colon, $double_quote, $quote, $space, assert, char_code, test_out} from "./utils";
 
 /*******
  * API *
@@ -38,10 +36,11 @@ export function encode(Data): IOList {
 export function decode(IOList_Bin: IOList | List | Binary) {
     const Type = type_of(IOList_Bin);
     switch (Type) {
-        case "iolist":
-            return decode((IOList_Bin as IOList).toBinary());
+        case "iolist": {
+            return decode(iolist_to_binary(IOList_Bin as IOList));
+        }
         case "list":
-            return decode(IOList.fromList(IOList_Bin as List));
+            return decode(list_to_string(IOList_Bin as List));
         case "binary":
             const List = binary_to_list(IOList_Bin as Binary);
             const [Rest, Res] = parse(List, EmptyList);
@@ -55,10 +54,10 @@ export function decode(IOList_Bin: IOList | List | Binary) {
 }
 
 export function decode_all(Data: IOList | Binary | List, Acc: List) {
-    if (!((Data instanceof IOList || Data instanceof Binary || Data instanceof List) && (Acc instanceof List))) {
+    if (!((typeof Data === "string" || Data instanceof Binary || Data instanceof List) && (Acc instanceof List))) {
         throw new Error("bad_arg");
     }
-    if (Data instanceof IOList) {
+    if (typeof Data === "string") {
         return decode_all(iolist_to_binary(Data), Acc);
     }
     if (Data instanceof Binary) {
@@ -82,11 +81,10 @@ export function decode_all(Data: IOList | Binary | List, Acc: List) {
 
 export function data_test(Data?) {
     if (Data) {
-        debugger;
         const encoded = encode(Data);
+        const binary = iolist_to_binary(encoded).value;
         const Res = decode(encoded);
         if (!equal(Data, Res)) {
-            const binary = iolist_to_binary(encoded).value;
             throw new Error("not_match: " + util.inspect({
                 Data: {
                     type: type_of(Data),
@@ -141,56 +139,58 @@ export function serialize(Data): IOList {
     const type = type_of(Data);
     switch (type) {
         case "int":
-            return IOList.from(32, integer_to_iolist(Data), 32);
+            return " " + Data + " ";
         case "float": {
             const [A, B] = fac(Data);
-            const Bin = B == 1 ? integer_to_iolist(A)
-                : IOList.from(integer_to_iolist(A), char_code["/"], integer_to_iolist(B));
-            return IOList.from(32, Bin, 32);
+            return B == 1
+                ? " " + A + " "
+                : " " + A + "/" + B + " ";
         }
         case "symbol": {
-            const Bin = string_to_binary(Symbol.keyFor(Data));
-            const Bin_Size = integer_to_iolist(byte_size(Bin));
-            return IOList.from($quote, $a, $colon, Bin_Size, $colon, Bin, $quote);
+            const Bin = Symbol.keyFor(Data);
+            const Bin_Size = Bin.length;
+            return `'a:${Bin_Size}:${Bin}'`;
         }
+        case "iolist":
         case "string": {
-            const Str = (Data as string).split('"').join('\\"');
-            return IOList.from($double_quote, string_to_binary(Str), $double_quote);
+            // const Str = (Data as string).split('"').join('\\"');
+            // return IOList.from($double_quote, string_to_binary(Str), $double_quote);
+            return JSON.stringify(Data);
         }
         case "array": {
             const Children = serialize_array(Data);
-            return IOList.from(char_code["["], Children, 32, char_code(WORD_LIST), 32);
+            return `[${Children} ${WORD_LIST} `;
         }
         case "list": {
             const Children = serialize_list(Data);
-            return IOList.from(char_code("["), Children, 32, char_code(WORD_LIST), 32);
+            return `[${Children} ${WORD_LIST} `;
         }
         case "set": {
             const Children = serialize_set(Data);
-            return IOList.from(char_code("["), Children, 32, char_code(WORD_SET), 32);
+            return `[${Children} ${WORD_SET} `;
         }
         case "binary": {
-            const Bin = to_binary(Data);
-            const Size = Bin.value.length;
-            const Bin_Size = integer_to_iolist(Size);
-            return IOList.from($quote, $b, $colon, Bin_Size, $colon, Bin, $quote);
+            const Bin = to_binary(Data).toString();
+            const Bin_Size = Bin.length;
+            return `'b:${Bin_Size}:${Bin}'`;
         }
         case "tuple": {
             const Tuple = Data as Tuple;
             const List_ = tuple_to_list(Tuple);
             const Children = serialize_list(List_);
-            return IOList.from(char_code["["], Children, 32, char_code(WORD_TUPLE), 32);
+            return `[${Children} ${WORD_TUPLE} `;
         }
         case "map": {
-            const Children = new IOList();
+            let Children: IOList = "";
             (Data as map).forEach((V, K) => {
                 const K_Bin = serialize(K);
                 const V_Bin = serialize(V);
                 // Children = IOList.from(Children, K_Bin, V_Bin);
-                Children.append(K_Bin);
-                Children.append(V_Bin);
+                // Children.append(K_Bin);
+                // Children.append(V_Bin);
+                Children = V_Bin + K_Bin + Children;
             });
-            return IOList.from(char_code["["], Children, 32, char_code(WORD_MAP), 32);
+            return `[${Children} ${WORD_MAP} `;
         }
         case "object": {
             const Children: IOList = Object.keys(Data)
@@ -199,11 +199,12 @@ export function serialize(Data): IOList {
                     const K_Bin = serialize(K);
                     const V_Bin = serialize(V);
                     // return IOList.from(Acc, K_Bin, V_Bin);
-                    Acc.append(K_Bin);
-                    Acc.append(V_Bin);
+                    // Acc.append(K_Bin);
+                    // Acc.append(V_Bin);
+                    Acc = V_Bin + K_Bin + Acc;
                     return Acc;
-                }, new IOList());
-            return IOList.from(char_code["["], Children, 32, char_code(WORD_MAP), 32);
+                }, "");
+            return `[${Children} ${WORD_MAP} `;
         }
         default:
             throw new TypeError("unknown type: " + type + ", data=" + util.inspect(Data));
@@ -212,21 +213,19 @@ export function serialize(Data): IOList {
 
 function serialize_array(Array: any[]): IOList {
     return Array.reduce((Acc: IOList, X): IOList => {
-        Acc.append(serialize(X));
-        return Acc;
-    }, new IOList());
+        return serialize(X) + Acc;
+    }, "");
 }
 
 export function serialize_list(List: List): IOList {
     return lists.foldl((X, Acc): IOList => {
-        Acc.append(serialize(X));
-        return Acc;
-    }, new IOList(), List);
+        return serialize(X) + Acc;
+    }, "", List);
 }
 
 export function serialize_set(Set: set): IOList {
-    const Acc = new IOList();
-    Set.forEach(X => Acc.append(serialize(X)));
+    let Acc = "";
+    Set.forEach(X => Acc = serialize(X) + Acc);
     return Acc;
 }
 
@@ -248,7 +247,7 @@ function parse(List: List, Acc: List): [List, any] {
     const T0 = List.tail;
 
     /* skip space */
-    if (H == 32) {
+    if (H == $space) {
         return parse(T0, Acc);
     }
 
