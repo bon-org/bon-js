@@ -11,7 +11,7 @@ export function assert(bool: boolean, msg: string) {
     }
 }
 
-export function char_code(s: string) {
+export function char_code(s: string): number {
     return char_code[s] || (char_code[s] = s.charCodeAt(0));
 }
 
