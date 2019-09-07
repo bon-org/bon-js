@@ -12,5 +12,6 @@ For the protocol detail, see [bon](https://github.com/bon-org/bon-doc).
 ## Library
 TODO add example of installation and usage.
 
-## TODO
-1. Add support to set (and dict?)
+## Remark
+the iolist is not optimized for high write throughput,
+otherwise, for large array of objects, the iolist_to_binary will run into stack overflow.
