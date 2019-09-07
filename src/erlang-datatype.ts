@@ -221,7 +221,7 @@ export class IOList {
             return;
         }
         if (x instanceof Binary) {
-            this.buffers.unshift(new Buffer(x.value));
+            this.buffers.unshift(Buffer.from(x.value));
             return;
         }
         throw new Error("bad_arg: " + util.inspect(x));
@@ -240,7 +240,7 @@ export class IOList {
         let buffer: number[] = [];
         const flush = () => {
             if (buffer.length > 0) {
-                buffers.push(new Buffer(buffer));
+                buffers.push(Buffer.from(buffer));
                 buffer = [];
             }
         };
@@ -256,7 +256,7 @@ export class IOList {
             }
             if (x instanceof Binary) {
                 flush();
-                buffers.push(new Buffer(x.value));
+                buffers.push(Buffer.from(x.value));
                 continue;
             }
             console.error("unknown type for IoList.from():", x);
@@ -373,6 +373,7 @@ export type set = Set<any>;
 export function equal(A, B): boolean {
     const A_Type = type_of(A);
     const B_Type = type_of(B);
+    debugger;
     if (A_Type != B_Type) {
         if (A_Type == "array" && B_Type == "list") {
             return equal_array_list(A, B);
@@ -394,6 +395,10 @@ export function equal(A, B): boolean {
             return equal_array(A.value, B.value);
         case "tuple":
             return equal_array(A.value, B.value);
+        case "set":
+            return equal_set(A, B);
+        case "map":
+            return equal_map(A, B);
         default:
             return A == B;
     }
@@ -416,6 +421,33 @@ export function equal_array_list(A: any[], B: List): boolean {
 
 export function equal_array(xs: any[], ys: any[]): boolean {
     return xs.length == ys.length && xs.every((x, i) => equal(x, ys[i]));
+}
+
+export function equal_set(xs: set, ys: set): boolean {
+    if (xs.size !== ys.size) {
+        return false;
+    }
+    for (const x of xs) {
+        if (!ys.has(x)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+export function equal_map(xs: map, ys: map): boolean {
+    if (xs.size !== ys.size) {
+        return false;
+    }
+    for (const [key, value] of xs.entries()) {
+        if (!ys.has(key)) {
+            return false;
+        }
+        if (!equal(value, ys.get(key))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 export function equal_list(List_A: List, List_B: List): boolean {

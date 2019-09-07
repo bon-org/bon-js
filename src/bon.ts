@@ -113,8 +113,10 @@ export function data_test(Data?) {
         string_to_binary("text"),
         new Tuple(Atom("record"), Atom("content")),
         [new Tuple(Atom("debug"), Atom("true")), Atom("safe"), Atom("speedup"), new Tuple(Atom("log"), "file.log")],
-        {user: "name", pw: "123"},
+        {user: "admin", pw: "123"},
         {log: [{time: 123}, {time: 234}]},
+        new Set([1, 2, 3]),
+        new Map([["user", "admin"], ["pw", "123"]]),
     ].map(data => {
         const res = data_test(data);
         if (res == "ok") {
@@ -132,8 +134,7 @@ export function data_test(Data?) {
 const WORD_TUPLE = "t";
 const WORD_LIST = "l";
 const WORD_MAP = "m";
-const WORD_SET = "m";
-const WORD_OBJECT = "o";
+const WORD_SET = "s";
 
 /* serializer  */
 export function serialize(Data): IOList {
@@ -186,7 +187,6 @@ export function serialize(Data): IOList {
                 const K_Bin = serialize(K);
                 const V_Bin = serialize(V);
                 // Children = IOList.from(Children, K_Bin, V_Bin);
-                // TODO fix the order
                 Children.append(K_Bin);
                 Children.append(V_Bin);
             });
@@ -198,9 +198,12 @@ export function serialize(Data): IOList {
                     const V = Data[K];
                     const K_Bin = serialize(K);
                     const V_Bin = serialize(V);
-                    return IOList.from(Acc, K_Bin, V_Bin);
+                    // return IOList.from(Acc, K_Bin, V_Bin);
+                    Acc.append(K_Bin);
+                    Acc.append(V_Bin);
+                    return Acc;
                 }, new IOList());
-            return IOList.from(char_code["["], Children, 32, char_code(WORD_OBJECT), 32);
+            return IOList.from(char_code["["], Children, 32, char_code(WORD_MAP), 32);
         }
         default:
             throw new TypeError("unknown type: " + type + ", data=" + util.inspect(Data));
@@ -320,8 +323,6 @@ function parse(List: List, Acc: List): [List, any] {
                     return list_to_set(Children);
                 case WORD_MAP:
                     return list_to_map(Children, new Map());
-                case WORD_OBJECT:
-                    return list_to_object(Children, {});
                 default:
                     throw new TypeError("unexpected word: " + util.inspect(Word));
             }
@@ -433,17 +434,6 @@ function list_to_map(List: List, Acc: map) {
     const T = List.tail.tail;
     Acc.set(K, V);
     return list_to_map(T, Acc);
-}
-
-function list_to_object(List: List, Acc: object) {
-    if (List === EmptyList) {
-        return Acc;
-    }
-    const K = List.value;
-    const V = List.tail.value;
-    const T = List.tail.tail;
-    Acc[K] = V;
-    return list_to_object(T, Acc);
 }
 
 const is_digit = (c) => 48 <= c && c <= (48 + 9);
